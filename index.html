@@ -254,7 +254,7 @@
 			color: var(--primary-green);
 		}
     </style>
-	<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=geometry&callback=initMap"></script>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAcEuQDa_XiJloZyntcIJwxrPF4UsgZ9Zc&libraries=geometry&callback=initMap"></script>
 </head>
 <body>
 
@@ -334,6 +334,132 @@
             // Ezres csoportosítás a szebb megjelenésért
             document.getElementById('total-price').innerText = total.toLocaleString('hu-HU') + ' Ft';
         }
-    </script>
+
+	        // Global variables for map and services (if API key ever provided)
+	        let map;
+	        let marker;
+	        const soltLocation = { lat: 46.8083, lng: 19.0304 }; // Coordinates for Solt, Hungary (approximate for Solt center)
+
+	        // Placeholder for initMap (will only work if Google Maps API loads with key)
+	        function initMap() {
+	            console.log("initMap called (Google Maps API loaded - hopefully)");
+	            const mapElement = document.getElementById("map");
+	            if (mapElement && typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+	                map = new google.maps.Map(mapElement, {
+	                    center: soltLocation,
+	                    zoom: 10,
+	                });
+	                mapElement.classList.add("loaded");
+	                marker = new google.maps.Marker({
+	                    position: soltLocation,
+	                    map: map,
+	                    title: "Solt, Hungary"
+	                });
+	            } else if (mapElement) {
+	                mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
+	            }
+	        }
+
+	        // Function to get user's location and initiate SMS
+	        function getTowingCost() {
+	            const getLocationBtn = document.getElementById('get-location-btn');
+	            if (getLocationBtn) {
+	                getLocationBtn.disabled = true;
+	                getLocationBtn.innerText = "Helyzet lekérése...";
+	            }
+
+	            if (navigator.geolocation) {
+	                navigator.geolocation.getCurrentPosition(
+	                    (position) => {
+	                        const userLat = position.coords.latitude;
+	                        const userLng = position.coords.longitude;
+	                        const userLocation = { lat: userLat, lng: userLng };
+
+	                        console.log("User location:", userLocation);
+
+	                        // Construct SMS message
+	                        const phoneNumber = "+36301234567"; // Extracted from HTML
+	                        const message = `Sürgős segítségre van szükségem! Az aktuális tartózkodási helyem: https://maps.google.com/maps?q=${userLat},${userLng}`;
+	                        const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+
+	                        // Open messaging app
+	                        window.location.href = smsLink;
+
+	                        if (getLocationBtn) {
+	                            getLocationBtn.disabled = false;
+	                            getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
+	                        }
+	                        // Update UI with location link for visual feedback
+	                        const distanceDisplay = document.getElementById('distance-display');
+	                        if (distanceDisplay) {
+	                            distanceDisplay.style.display = 'block';
+	                            distanceDisplay.innerHTML = `Helyzet megosztva: <a href="https://maps.google.com/maps?q=${userLat},${userLng}" target="_blank">Megtekintés térképen</a>`;
+	                        }
+
+	                        // Inform about map limitations if API key is missing
+	                        const mapContainer = document.getElementById('map');
+	                        if (mapContainer && (!window.google || !window.google.maps || !window.google.maps.geometry)) {
+	                            mapContainer.innerText = "Térkép és távolság számítás nem működik Google Maps API kulcs nélkül.";
+	                        }
+
+	                        // Reset towing cost display if it was previously shown
+	                        const towingCostDisplay = document.getElementById('towing-cost-display');
+	                        if (towingCostDisplay) {
+	                            towingCostDisplay.style.display = 'none';
+	                            towingCostDisplay.innerHTML = `Vontatási költség: <strong>0 Ft</strong>`;
+	                        }
+
+	                    },
+	                    (error) => {
+	                        console.error("Error getting location:", error);
+	                        let errorMessage = "Nem sikerült lekérni a helyzetet.";
+	                        switch (error.code) {
+	                            case error.PERMISSION_DENIED:
+	                                errorMessage += " Kérjük, engedélyezze a helyzet megosztását a böngészőben.";
+	                                break;
+	                            case error.POSITION_UNAVAILABLE:
+	                                errorMessage += " A helyzetinformáció nem elérhető.";
+	                                break;
+	                            case error.TIMEOUT:
+	                                errorMessage += " A helyzet lekérése túllépte az időkorlátot.";
+	                                break;
+	                            default:
+	                                errorMessage += " Ismeretlen hiba történt.";
+	                                break;
+	                        }
+	                        alert(errorMessage);
+	                        if (getLocationBtn) {
+	                            getLocationBtn.disabled = false;
+	                            getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
+	                        }
+	                    },
+	                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+	                );
+	            } else {
+	                alert("A böngészője nem támogatja a földrajzi helyzet megosztását.");
+	                if (getLocationBtn) {
+	                    getLocationBtn.disabled = false;
+	                    getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
+	                }
+	            }
+	        }
+
+	        // Ensure initMap is called if Google Maps script loads, or provide fallback
+	        window.onload = function() {
+	            if (typeof initMap === 'function') {
+	                // If Google Maps API script loaded and defined initMap, it will call it.
+	                // If it didn't load, initMap won't be defined.
+	                // For safety, if it's not called by GM API, we call it here.
+	                // However, the GM API script with callback param usually handles this.
+	                // This part is mainly for scenarios where the API key is missing and GM doesn't even attempt to call initMap.
+	                // A more robust check might involve typeof google.maps === 'undefined'
+	                setTimeout(() => {
+	                     if (document.getElementById('map') && typeof google === 'undefined') {
+	                        document.getElementById('map').innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
+	                    }
+	                }, 1000); // Give GM API a moment to load if it's going to
+	            }
+	        };
+	    </script>
 </body>
 </html>

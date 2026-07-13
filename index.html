@@ -218,7 +218,7 @@
 			color: var(--text-gray);
 		}
 		.map-container.loaded {
-			background-color: transparent; /* Once loaded, hide placeholder background */
+			background-color: transparent;
 		}
 		.location-btn {
 			background-color: var(--primary-green);
@@ -229,8 +229,8 @@
 			font-size: 16px;
 			cursor: pointer;
 			transition: background-color 0.2s;
-			width: 100%; /* Full width button */
-			margin-top: 10px; /* Space from above elements */
+			width: 100%;
+			margin-top: 10px;
 			font-weight: bold;
 		}
 		.location-btn:hover {
@@ -239,6 +239,14 @@
 		.location-btn:disabled {
 			background-color: #555;
 			cursor: not-allowed;
+		}
+		.share-btn {
+			background-color: #007bff;
+			margin-top: 10px;
+			width: 100%;
+		}
+		.share-btn:hover {
+			background-color: #0056b3;
 		}
 		#distance-display, #towing-cost-display {
 			font-size: 16px;
@@ -307,8 +315,13 @@
                     <strong id="total-price">0 Ft</strong>
                 </div>
                 <div class="calc-group">
+                    <label for="destination-address">Hova szeretné vontatni? (cím vagy település):</label>
+                    <input type="text" id="destination-address" placeholder="Pl: Budapest, Váci út 12" value="Solt, Hungary">
+                </div>
+                <div class="calc-group">
                     <label>Vontatás (85 Ft/km):</label>
-                    <button class="location-btn" onclick="getTowingCost()" id="get-location-btn">Saját helyzet megosztása és távolság számítása</button>
+                    <button class="location-btn" onclick="calculateTowingCost()" id="calculate-towing-btn">Távolság és költség számítása</button>
+                    <button class="location-btn share-btn" onclick="shareLocationViaSMS()" id="share-location-btn">Helyzet megosztása SMS-ben</button>
                     <div id="distance-display" style="display: none;">Távolság: <strong>0 km</strong></div>
                     <div id="towing-cost-display" style="display: none;">Vontatási költség: <strong>0 Ft</strong></div>
                 </div>
@@ -330,136 +343,266 @@
             const defektQty = parseInt(document.getElementById('defekt').value) || 0;
 
             const total = (gumicsereQty * gumicserePrice) + (defektQty * defektPrice);
-            
-            // Ezres csoportosítás a szebb megjelenésért
+
             document.getElementById('total-price').innerText = total.toLocaleString('hu-HU') + ' Ft';
         }
 
-	        // Global variables for map and services (if API key ever provided)
-	        let map;
-	        let marker;
-	        const soltLocation = { lat: 46.8083, lng: 19.0304 }; // Coordinates for Solt, Hungary (approximate for Solt center)
+        // Global variables for map and services
+        let map;
+        let originMarker;
+        let destinationMarker;
+        let directionsRenderer;
+        let geocoder;
+        let directionsService;
+        const soltLocation = { lat: 46.8083, lng: 19.0304 }; // Fallback/default for Solt
+        const towingRate = 85; // HUF/km
 
-	        // Placeholder for initMap (will only work if Google Maps API loads with key)
-	        function initMap() {
-	            console.log("initMap called (Google Maps API loaded - hopefully)");
-	            const mapElement = document.getElementById("map");
-	            if (mapElement && typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
-	                map = new google.maps.Map(mapElement, {
-	                    center: soltLocation,
-	                    zoom: 10,
-	                });
-	                mapElement.classList.add("loaded");
-	                marker = new google.maps.Marker({
-	                    position: soltLocation,
-	                    map: map,
-	                    title: "Solt, Hungary"
-	                });
-	            } else if (mapElement) {
-	                mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
-	            }
-	        }
+        // initMap is called by the Google Maps API script automatically if the key is valid
+        function initMap() {
+            console.log("initMap called. Google Maps API is loaded.");
+            const mapElement = document.getElementById("map");
+            if (mapElement && typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+                map = new google.maps.Map(mapElement, {
+                    center: soltLocation,
+                    zoom: 8,
+                });
+                mapElement.classList.add("loaded");
 
-	        // Function to get user's location and initiate SMS
-	        function getTowingCost() {
-	            const getLocationBtn = document.getElementById('get-location-btn');
-	            if (getLocationBtn) {
-	                getLocationBtn.disabled = true;
-	                getLocationBtn.innerText = "Helyzet lekérése...";
-	            }
+                geocoder = new google.maps.Geocoder();
+                directionsService = new google.maps.DirectionsService();
+                directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
-	            if (navigator.geolocation) {
-	                navigator.geolocation.getCurrentPosition(
-	                    (position) => {
-	                        const userLat = position.coords.latitude;
-	                        const userLng = position.coords.longitude;
-	                        const userLocation = { lat: userLat, lng: userLng };
+                new google.maps.Marker({
+                    position: soltLocation,
+                    map: map,
+                    title: "Solt, Hungary (Default Destination)"
+                });
+            } else if (mapElement) {
+                 mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
+            } else {
+                console.error("Map element not found.");
+            }
+        }
 
-	                        console.log("User location:", userLocation);
+        // Calculate and display the driving route between origin and destination
+        function calculateAndDisplayRoute(origin, destination) {
+            const distanceDisplay = document.getElementById('distance-display');
+            const towingCostDisplay = document.getElementById('towing-cost-display');
+            const getLocationBtn = document.getElementById('calculate-towing-btn');
 
-	                        // Construct SMS message
-	                        const phoneNumber = "+36301234567"; // Extracted from HTML
-	                        const message = `Sürgős segítségre van szükségem! Az aktuális tartózkodási helyem: https://maps.google.com/maps?q=${userLat},${userLng}`;
-	                        const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+            directionsService.route(
+                {
+                    origin: origin,
+                    destination: destination,
+                    travelMode: google.maps.TravelMode.DRIVING,
+                    unitSystem: google.maps.UnitSystem.METRIC,
+                },
+                (response, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(response);
 
-	                        // Open messaging app
-	                        window.location.href = smsLink;
+                        const route = response.routes[0];
+                        const distanceMeters = route.legs[0].distance.value;
+                        const distanceKm = (distanceMeters / 1000);
+                        const formattedDistance = distanceKm.toFixed(2) + ' km';
 
-	                        if (getLocationBtn) {
-	                            getLocationBtn.disabled = false;
-	                            getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
-	                        }
-	                        // Update UI with location link for visual feedback
-	                        const distanceDisplay = document.getElementById('distance-display');
-	                        if (distanceDisplay) {
-	                            distanceDisplay.style.display = 'block';
-	                            distanceDisplay.innerHTML = `Helyzet megosztva: <a href="https://maps.google.com/maps?q=${userLat},${userLng}" target="_blank">Megtekintés térképen</a>`;
-	                        }
+                        const towingCost = distanceKm * towingRate;
+                        const formattedCost = towingCost.toLocaleString('hu-HU') + ' Ft';
 
-	                        // Inform about map limitations if API key is missing
-	                        const mapContainer = document.getElementById('map');
-	                        if (mapContainer && (!window.google || !window.google.maps || !window.google.maps.geometry)) {
-	                            mapContainer.innerText = "Térkép és távolság számítás nem működik Google Maps API kulcs nélkül.";
-	                        }
+                        if (distanceDisplay) {
+                            distanceDisplay.style.display = 'block';
+                            distanceDisplay.innerHTML = `Távolság: <strong>${formattedDistance}</strong>`;
+                        }
+                        if (towingCostDisplay) {
+                            towingCostDisplay.style.display = 'block';
+                            towingCostDisplay.innerHTML = `Vontatási költség: <strong>${formattedCost}</strong>`;
+                        }
 
-	                        // Reset towing cost display if it was previously shown
-	                        const towingCostDisplay = document.getElementById('towing-cost-display');
-	                        if (towingCostDisplay) {
-	                            towingCostDisplay.style.display = 'none';
-	                            towingCostDisplay.innerHTML = `Vontatási költség: <strong>0 Ft</strong>`;
-	                        }
+                        if (originMarker) originMarker.setMap(null);
+                        if (destinationMarker) destinationMarker.setMap(null);
 
-	                    },
-	                    (error) => {
-	                        console.error("Error getting location:", error);
-	                        let errorMessage = "Nem sikerült lekérni a helyzetet.";
-	                        switch (error.code) {
-	                            case error.PERMISSION_DENIED:
-	                                errorMessage += " Kérjük, engedélyezze a helyzet megosztását a böngészőben.";
-	                                break;
-	                            case error.POSITION_UNAVAILABLE:
-	                                errorMessage += " A helyzetinformáció nem elérhető.";
-	                                break;
-	                            case error.TIMEOUT:
-	                                errorMessage += " A helyzet lekérése túllépte az időkorlátot.";
-	                                break;
-	                            default:
-	                                errorMessage += " Ismeretlen hiba történt.";
-	                                break;
-	                        }
-	                        alert(errorMessage);
-	                        if (getLocationBtn) {
-	                            getLocationBtn.disabled = false;
-	                            getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
-	                        }
-	                    },
-	                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-	                );
-	            } else {
-	                alert("A böngészője nem támogatja a földrajzi helyzet megosztását.");
-	                if (getLocationBtn) {
-	                    getLocationBtn.disabled = false;
-	                    getLocationBtn.innerText = "Saját helyzet megosztása és távolság számítása";
-	                }
-	            }
-	        }
+                        originMarker = new google.maps.Marker({
+                            position: route.legs[0].start_location,
+                            map: map,
+                            title: "Jelenlegi helyzetem",
+                            icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                        });
+                        destinationMarker = new google.maps.Marker({
+                            position: route.legs[0].end_location,
+                            map: map,
+                            title: document.getElementById('destination-address').value,
+                            icon: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                        });
 
-	        // Ensure initMap is called if Google Maps script loads, or provide fallback
-	        window.onload = function() {
-	            if (typeof initMap === 'function') {
-	                // If Google Maps API script loaded and defined initMap, it will call it.
-	                // If it didn't load, initMap won't be defined.
-	                // For safety, if it's not called by GM API, we call it here.
-	                // However, the GM API script with callback param usually handles this.
-	                // This part is mainly for scenarios where the API key is missing and GM doesn't even attempt to call initMap.
-	                // A more robust check might involve typeof google.maps === 'undefined'
-	                setTimeout(() => {
-	                     if (document.getElementById('map') && typeof google === 'undefined') {
-	                        document.getElementById('map').innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
-	                    }
-	                }, 1000); // Give GM API a moment to load if it's going to
-	            }
-	        };
-	    </script>
+                        map.fitBounds(route.bounds);
+
+                    } else {
+                        console.error("Directions service failed:", status);
+                        if (distanceDisplay) {
+                            distanceDisplay.style.display = 'block';
+                            distanceDisplay.innerHTML = `Hiba az útvonal számításakor: ${status}`;
+                        }
+                        if (towingCostDisplay) {
+                            towingCostDisplay.style.display = 'block';
+                            towingCostDisplay.innerHTML = `Költség számítása sikertelen.`;
+                        }
+                    }
+                    if (getLocationBtn) {
+                        getLocationBtn.disabled = false;
+                        getLocationBtn.innerText = "Távolság és költség számítása";
+                    }
+                }
+            );
+        }
+
+        // Get the user's location and open an SMS with a maps link
+        function shareLocationViaSMS() {
+            const shareLocationBtn = document.getElementById('share-location-btn');
+            if (shareLocationBtn) {
+                shareLocationBtn.disabled = true;
+                shareLocationBtn.innerText = "Helyzet lekérése...";
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        const phoneNumber = "+36301234567";
+                        const smsMessage = `Sürgős segítségre van szükségem! Az aktuális tartózkodási helyem: https://maps.google.com/maps?q=${userLat},${userLng}`;
+                        const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(smsMessage)}`;
+                        window.location.href = smsLink;
+
+                        if (shareLocationBtn) {
+                            shareLocationBtn.disabled = false;
+                            shareLocationBtn.innerText = "Helyzet megosztása SMS-ben";
+                        }
+                    },
+                    (error) => {
+                        console.error("Error getting location for SMS:", error);
+                        alert("Nem sikerült lekérni a helyzetet az SMS küldéséhez. Kérjük, engedélyezze a helyzet megosztását.");
+                        if (shareLocationBtn) {
+                            shareLocationBtn.disabled = false;
+                            shareLocationBtn.innerText = "Helyzet megosztása SMS-ben";
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                alert("A böngészője nem támogatja a földrajzi helyzet megosztását.");
+                if (shareLocationBtn) {
+                    shareLocationBtn.disabled = false;
+                    shareLocationBtn.innerText = "Helyzet megosztása SMS-ben";
+                }
+            }
+        }
+
+        // Get the user's location, geocode the destination, and calculate towing cost
+        function calculateTowingCost() {
+            const getLocationBtn = document.getElementById('calculate-towing-btn');
+            const distanceDisplay = document.getElementById('distance-display');
+            const towingCostDisplay = document.getElementById('towing-cost-display');
+            const mapContainer = document.getElementById('map');
+            const destinationAddressInput = document.getElementById('destination-address');
+            const destinationAddress = destinationAddressInput ? destinationAddressInput.value : '';
+
+            if (!destinationAddress) {
+                alert("Kérjük, adja meg a vontatás célállomás címét!");
+                return;
+            }
+
+            if (getLocationBtn) {
+                getLocationBtn.disabled = true;
+                getLocationBtn.innerText = "Helyzet és útvonal számítása...";
+            }
+
+            if (distanceDisplay) { distanceDisplay.style.display = 'none'; distanceDisplay.innerHTML = ''; }
+            if (towingCostDisplay) { towingCostDisplay.style.display = 'none'; towingCostDisplay.innerHTML = ''; }
+            if (originMarker) { originMarker.setMap(null); }
+            if (destinationMarker) { destinationMarker.setMap(null); }
+            if (directionsRenderer) { directionsRenderer.setDirections({ routes: [] }); }
+
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined' || typeof google.maps.Geocoder === 'undefined' || typeof google.maps.DirectionsService === 'undefined' || !map) {
+                console.warn("Google Maps API or necessary services not fully loaded. Check API key and network.");
+                if (mapContainer) { mapContainer.innerText = "Térkép, útvonal és költség számítás nem működik Google Maps API kulcs nélkül, vagy nem töltődött be teljesen."; }
+                if (distanceDisplay) { distanceDisplay.style.display = 'block'; distanceDisplay.innerHTML = `Google Maps API kulcs nélkül a távolság számítása nem lehetséges.`; }
+                if (towingCostDisplay) { towingCostDisplay.style.display = 'block'; towingCostDisplay.innerHTML = `Költség számítása Google Maps API kulcs nélkül nem lehetséges.`; }
+                if (getLocationBtn) {
+                    getLocationBtn.disabled = false;
+                    getLocationBtn.innerText = "Távolság és költség számítása";
+                }
+                return;
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        const userLatLng = new google.maps.LatLng(userLat, userLng);
+
+                        console.log("User origin location:", { lat: userLat, lng: userLng });
+
+                        geocoder.geocode({ 'address': destinationAddress }, (results, status) => {
+                            if (status === 'OK' && results[0]) {
+                                const destinationLatLng = results[0].geometry.location;
+                                calculateAndDisplayRoute(userLatLng, destinationLatLng);
+                            } else {
+                                console.error("Geocoding failed:", status);
+                                if (distanceDisplay) { distanceDisplay.style.display = 'block'; distanceDisplay.innerHTML = `Cím geokódolása sikertelen: ${status}. Kérjük, pontosítsa a célállomást.`; }
+                                if (towingCostDisplay) { towingCostDisplay.style.display = 'block'; towingCostDisplay.innerHTML = `Költség számítása sikertelen.`; }
+                                if (getLocationBtn) {
+                                    getLocationBtn.disabled = false;
+                                    getLocationBtn.innerText = "Távolság és költség számítása";
+                                }
+                            }
+                        });
+                    },
+                    (error) => {
+                        console.error("Error getting location:", error);
+                        let errorMessage = "Nem sikerült lekérni a helyzetet.";
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += " Kérjük, engedélyezze a helyzet megosztását a böngészőben.";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += " A helyzetinformáció nem elérhető.";
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += " A helyzet lekérése túllépte az időkorlátot.";
+                                break;
+                            default:
+                                errorMessage += " Ismeretlen hiba történt.";
+                                break;
+                        }
+                        alert(errorMessage);
+                        if (getLocationBtn) {
+                            getLocationBtn.disabled = false;
+                            getLocationBtn.innerText = "Távolság és költség számítása";
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                alert("A böngészője nem támogatja a földrajzi helyzet megosztását.");
+                if (getLocationBtn) {
+                    getLocationBtn.disabled = false;
+                    getLocationBtn.innerText = "Távolság és költség számítása";
+                }
+            }
+        }
+
+        // Fallback message if the Google Maps API script never loads/calls initMap (e.g. invalid/missing key)
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const mapElement = document.getElementById('map');
+                if (mapElement && typeof google === 'undefined') {
+                    mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
+                } else if (mapElement && typeof google.maps === 'undefined') {
+                    mapElement.innerText = "Térkép inicializálása sikertelen. Ellenőrizze a Google Maps API betöltődését.";
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

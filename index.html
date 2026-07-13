@@ -261,6 +261,22 @@
 		#distance-display strong, #towing-cost-display strong {
 			color: var(--primary-green);
 		}
+        .calculator-wrapper {
+              display: flex;
+              flex-direction: row; /* Default to row for side-by-side */
+              gap: 20px; /* Space between the two calculator cards */
+          }
+
+          .calculator-wrapper .card {
+              flex: 1; /* Allow cards to grow and shrink */
+              min-width: 500px; /* Ensure cards don't get too small */
+          }
+
+          @media (max-width: 768px) {
+              .calculator-wrapper {
+                  flex-direction: column; /* Stack calculators on small screens */
+              }
+          }
     </style>
 	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAcEuQDa_XiJloZyntcIJwxrPF4UsgZ9Zc&libraries=geometry&callback=initMap"></script>
 </head>
@@ -268,10 +284,11 @@
 
     <header>
         <div class="container header-flex">
-            <div class="logo">GUMI<span>SZERVIZ</span></div>
+            <div class="logo">DRIVE<span>24</span></div>
             <div class="contact-highlights">
                 <a href="tel:+36301234567" class="badge">📞 +36 30 123 4567</a>
                 <a href="mailto:info@gumiszerviz.hu" class="badge">✉ info@gumiszerviz.hu</a>
+                <a href="https://www.youtube.com/watch?v=hv0IKZYlmQw" class="badge" target="_blank">▶ YouTube</a>
             </div>
         </div>
     </header>
@@ -290,7 +307,7 @@
                 <h2>Szolgáltatásaink</h2>
                 <div class="price-list-item">
                     <span>Gumicsere (darabár)</span>
-                    <span class="price">8 000 Ft</span>
+                    <span class="price">2 000 Ft</span>
                 </div>
                 <div class="price-list-item">
                     <span>Defektjavítás (alkalom/gumi)</span>
@@ -301,39 +318,40 @@
                     <span class="price">40 000 Ft + 85 Ft/km</span>
                 </div>
 
-            <!-- Kalkulátor -->
-            <div class="card">
-                <h2>Árkalkulátor</h2>
-                <div class="calc-group">
-                    <label for="gumicsere">Gumicsere darabszám (8 000 Ft/db):</label>
-                    <input type="number" id="gumicsere" min="0" value="0" oninput="calculateTotal()">
-                </div>
-                <div class="calc-group">
-                    <label for="defekt">Defektjavítás darabszám (20 000 Ft/db):</label>
-                    <input type="number" id="defekt" min="0" value="0" oninput="calculateTotal()">
+            <div class="calculator-wrapper">
+                <div class="card">
+                    <h2>Árkalkulátor</h2>
+                    <div class="calc-group">
+                        <label for="gumicsere">Gumicsere darabszám (2 000 Ft/db):</label>
+                        <input type="number" id="gumicsere" min="0" value="0" oninput="calculateTotal()">
+                    </div>
+                    <div class="calc-group">
+                        <label for="defekt">Defektjavítás darabszám (20 000 Ft/db):</label>
+                        <input type="number" id="defekt" min="0" value="0" oninput="calculateTotal()">
+                    </div>
+
+                    <div class="total-box">
+                        <span>Várható fizetendő összeg:</span>
+                        <strong id="total-price">0 Ft</strong>
+                    </div>
                 </div>
 
-                <div class="total-box">
-                    <span>Várható fizetendő összeg:</span>
-                    <strong id="total-price">0 Ft</strong>
+                <!-- Autómentés Kalkulátor -->
+                <div class="card">
+                    <h2>Autómentés kalkulátor</h2>
+                    <div class="calc-group">
+                        <label for="destination-address">Hova szeretné vontatni? (cím vagy település):</label>
+                        <input type="text" id="destination-address" placeholder="Pl: Budapest, Váci út 12" value="Solt, Hungary">
+                    </div>
+                    <div class="calc-group">
+                        <label>Vontatás (85 Ft/km):</label>
+                        <button class="location-btn" onclick="calculateTowingCost()" id="calculate-towing-btn">Távolság és költség számítása</button>
+                        <button class="location-btn share-btn" onclick="shareLocationViaSMS()" id="share-location-btn">Helyzet megosztása SMS-ben</button>
+                        <div id="distance-display" style="display: none;">Távolság: <strong>0 km</strong></div>
+                        <div id="towing-cost-display" style="display: none;">Vontatási költség: <strong>0 Ft</strong></div>
+                    </div>
+                    <div id="map" class="map-container">Térkép betöltése...</div>
                 </div>
-            </div>
-
-            <!-- Autómentés Kalkulátor -->
-            <div class="card">
-                <h2>Autómentés kalkulátor</h2>
-                <div class="calc-group">
-                    <label for="destination-address">Hova szeretné vontatni? (cím vagy település):</label>
-                    <input type="text" id="destination-address" placeholder="Pl: Budapest, Váci út 12" value="Solt, Hungary">
-                </div>
-                <div class="calc-group">
-                    <label>Vontatás (85 Ft/km):</label>
-                    <button class="location-btn" onclick="calculateTowingCost()" id="calculate-towing-btn">Távolság és költség számítása</button>
-                    <button class="location-btn share-btn" onclick="shareLocationViaSMS()" id="share-location-btn">Helyzet megosztása SMS-ben</button>
-                    <div id="distance-display" style="display: none;">Távolság: <strong>0 km</strong></div>
-                    <div id="towing-cost-display" style="display: none;">Vontatási költség: <strong>0 Ft</strong></div>
-                </div>
-                <div id="map" class="map-container">Térkép betöltése...</div>
             </div>
         </div>
     </main>

@@ -296,7 +296,10 @@
                     <span>Defektjavítás (alkalom/gumi)</span>
                     <span class="price">20 000 Ft</span>
                 </div>
-            </div>
+                <div class="price-list-item">
+                    <span>Autómentés (alapdíj + km díj)</span>
+                    <span class="price">40 000 Ft + 85 Ft/km</span>
+                </div>
 
             <!-- Kalkulátor -->
             <div class="card">
@@ -314,6 +317,11 @@
                     <span>Várható fizetendő összeg:</span>
                     <strong id="total-price">0 Ft</strong>
                 </div>
+            </div>
+
+            <!-- Autómentés Kalkulátor -->
+            <div class="card">
+                <h2>Autómentés kalkulátor</h2>
                 <div class="calc-group">
                     <label for="destination-address">Hova szeretné vontatni? (cím vagy település):</label>
                     <input type="text" id="destination-address" placeholder="Pl: Budapest, Váci út 12" value="Solt, Hungary">
@@ -357,13 +365,45 @@
         const soltLocation = { lat: 46.8083, lng: 19.0304 }; // Fallback/default for Solt
         const towingRate = 85; // HUF/km
 
+        
+        // Function to attempt to center the map on the user's current location
+        function centerMapOnUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        const userLatLng = new google.maps.LatLng(userLat, userLng);
+                        map.setCenter(userLatLng);
+                        if (!originMarker) {
+                            originMarker = new google.maps.Marker({
+                                position: userLatLng,
+                                map: map,
+                                title: "Your Location",
+                                icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                            });
+                        } else {
+                            originMarker.setPosition(userLatLng);
+                        }
+                        map.setZoom(12); // Zoom in on user's location
+                    },
+                    (error) => {
+                        console.warn("Could not get user location for initial map center:", error);
+                        // Fallback to default center already set in initMap
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            }
+        }
+
         // initMap is called by the Google Maps API script automatically if the key is valid
         function initMap() {
             console.log("initMap called. Google Maps API is loaded.");
             const mapElement = document.getElementById("map");
             if (mapElement && typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
                 map = new google.maps.Map(mapElement, {
-                    center: soltLocation,
+                    center: soltLocation, // Default fallback center, will be updated with user location if available
+
                     zoom: 8,
                 });
                 mapElement.classList.add("loaded");
@@ -372,11 +412,8 @@
                 directionsService = new google.maps.DirectionsService();
                 directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
-                new google.maps.Marker({
-                    position: soltLocation,
-                    map: map,
-                    title: "Solt, Hungary (Default Destination)"
-                });
+                centerMapOnUserLocation(); // Attempt to center map on user's location
+
             } else if (mapElement) {
                  mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
             } else {
@@ -406,7 +443,7 @@
                         const distanceKm = (distanceMeters / 1000);
                         const formattedDistance = distanceKm.toFixed(2) + ' km';
 
-                        const towingCost = distanceKm * towingRate;
+                        const towingCost = 40000 + (distanceKm * towingRate); // Add 40,000 Ft base fee
                         const formattedCost = towingCost.toLocaleString('hu-HU') + ' Ft';
 
                         if (distanceDisplay) {

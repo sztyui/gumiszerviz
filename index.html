@@ -49,9 +49,13 @@
         }
 
         .logo {
-            font-size: 24px;
+            display: flex;
+            align-items: center;
+            font-size: 34px;
+            font-size: 38px; /* Slightly increased size */
             font-weight: bold;
             color: var(--text-light);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Subtle shadow for depth */
         }
 
         .logo span {
@@ -179,6 +183,30 @@
             outline: none;
         }
 
+        #wheel-size {
+            width: 100%;
+            padding: 12px;
+            background-color: #111;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            font-size: 16px;
+            -webkit-appearance: none; /* For Safari */
+            -moz-appearance: none;    /* For Firefox */
+            appearance: none;         /* Standard property */
+            cursor: pointer;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l118.8%20118.7c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px; /* Space for the custom arrow */
+        }
+
+        #wheel-size:focus {
+            border-color: var(--primary-green);
+            outline: none;
+        }
+
         .total-box {
             background-color: #111;
             padding: 20px;
@@ -278,13 +306,13 @@
               }
           }
     </style>
-	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAcEuQDa_XiJloZyntcIJwxrPF4UsgZ9Zc&libraries=geometry&callback=initMap"></script>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAcEuQDa_XiJloZyntcIJwxrPF4UsgZ9Zc&libraries=geometry,places&callback=initMap"></script>
 </head>
 <body>
 
     <header>
         <div class="container header-flex">
-            <div class="logo">DRIVE<span>24</span></div>
+            <div class="logo"><img src="img/logo.png" alt="DRIVE24 Logo" style="height: 30px; margin-right: 10px;">DRIVE<span>24</span></div>
             <div class="contact-highlights">
                 <a href="tel:+36301234567" class="badge">📞 +36 30 123 4567</a>
                 <a href="mailto:info@gumiszerviz.hu" class="badge">✉ info@gumiszerviz.hu</a>
@@ -322,17 +350,42 @@
                 <div class="card">
                     <h2>Árkalkulátor</h2>
                     <div class="calc-group">
+                        <label for="tire-size">Gumi méret (XXX/YY):</label>
+                        <input type="text" id="tire-size" placeholder="pl. 205/55" oninput="validateTireSize()">
+                        <p id="tire-size-error" style="color: red; display: none;">Helytelen formátum (pl. 205/55)</p>
+                    </div>
+                    <div class="calc-group">
+                        <label for="wheel-size">Felni méret (R érték):</label>
+                        <select id="wheel-size">
+                            <!-- Options R10 to R27 -->
+                            <option value="">Válasszon</option>
+                            <option value="R10">R10</option>
+                            <option value="R11">R11</option>
+                            <option value="R12">R12</option>
+                            <option value="R13">R13</option>
+                            <option value="R14">R14</option>
+                            <option value="R15">R15</option>
+                            <option value="R16">R16</option>
+                            <option value="R17">R17</option>
+                            <option value="R18">R18</option>
+                            <option value="R19">R19</option>
+                            <option value="R20">R20</option>
+                            <option value="R21">R21</option>
+                            <option value="R22">R22</option>
+                            <option value="R23">R23</option>
+                            <option value="R24">R24</option>
+                            <option value="R25">R25</option>
+                            <option value="R26">R26</option>
+                            <option value="R27">R27</option>
+                        </select>
+                    </div>
+                    <div class="calc-group">
                         <label for="gumicsere">Gumicsere darabszám (2 000 Ft/db):</label>
                         <input type="number" id="gumicsere" min="0" value="0" oninput="calculateTotal()">
                     </div>
                     <div class="calc-group">
                         <label for="defekt">Defektjavítás darabszám (20 000 Ft/db):</label>
                         <input type="number" id="defekt" min="0" value="0" oninput="calculateTotal()">
-                    </div>
-
-                    <div class="total-box">
-                        <span>Várható fizetendő összeg:</span>
-                        <strong id="total-price">0 Ft</strong>
                     </div>
                 </div>
 
@@ -431,6 +484,22 @@
                 directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
                 centerMapOnUserLocation(); // Attempt to center map on user's location
+
+                // Initialize Autocomplete for destination address
+                const destinationAddressInput = document.getElementById('destination-address');
+                if (destinationAddressInput) {
+                    const autocomplete = new google.maps.places.Autocomplete(destinationAddressInput);
+
+                    autocomplete.addListener('place_changed', () => {
+                        const place = autocomplete.getPlace();
+                        if (!place.geometry) {
+                            console.warn("Autocomplete returned no place geometry for:", place.name);
+                            return;
+                        }
+                        // Trigger towing cost calculation when a place is selected
+                        calculateTowingCost();
+                    });
+                }
 
             } else if (mapElement) {
                  mapElement.innerText = "Térkép nem tölthető be. Hiányzó vagy hibás Google Maps API kulcs.";
@@ -646,6 +715,23 @@
                 }
             }
         }
+
+        function validateTireSize() {
+              const tireSizeInput = document.getElementById('tire-size');
+              const tireSizeError = document.getElementById('tire-size-error');
+              const tireSize = tireSizeInput.value;
+
+              // Regex for XXX/YY format (e.g., 205/55)
+              const regex = /^(\d{3})\/(\d{2})$/;
+
+              if (regex.test(tireSize) || tireSize === '') {
+                  tireSizeInput.style.borderColor = ''; // Reset border color
+                  tireSizeError.style.display = 'none'; // Hide error message
+              } else {
+                  tireSizeInput.style.borderColor = 'red'; // Highlight input in red
+                  tireSizeError.style.display = 'block'; // Show error message
+              }
+          }
 
         // Fallback message if the Google Maps API script never loads/calls initMap (e.g. invalid/missing key)
         window.addEventListener('load', () => {

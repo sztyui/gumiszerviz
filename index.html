@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prémium Gumiszerviz</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --primary-green: #2ecc71;
+            --text-light: #ffffff;
+            --text-gray: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: #000000;
+            padding: 20px;
+            border-bottom: 3px solid var(--primary-green);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        .logo span {
+            color: var(--primary-green);
+        }
+
+        .contact-highlights {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #000, #1a1a1a);
+            border: 2px solid var(--primary-green);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            color: var(--text-light);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+            background: radial-gradient(circle at center, #1a3a2a 0%, var(--bg-dark) 70%);
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 span {
+            color: var(--primary-green);
+        }
+
+        .hero p {
+            color: var(--text-gray);
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .services-and-calc {
+            padding: 40px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .services-and-calc {
+                grid-template-columns: 1fr;
+            }
+            .header-flex {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-green);
+            padding-bottom: 10px;
+        }
+
+        .price-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .price-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .price {
+            color: var(--primary-green);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .calc-group {
+            margin-bottom: 20px;
+        }
+
+        .calc-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-gray);
+        }
+
+        .calc-group input {
+            width: 100%;
+            padding: 12px;
+            background-color: #111;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .calc-group input:focus {
+            border-color: var(--primary-green);
+            outline: none;
+        }
+
+        .total-box {
+            background-color: #111;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-green);
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .total-box span {
+            display: block;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .total-box strong {
+            font-size: 28px;
+            color: var(--primary-green);
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-gray);
+            border-top: 1px solid #222;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-flex">
+            <div class="logo">GUMI<span>SZERVIZ</span></div>
+            <div class="contact-highlights">
+                <a href="tel:+36301234567" class="badge">📞 +36 30 123 4567</a>
+                <a href="mailto:info@gumiszerviz.hu" class="badge">✉ info@gumiszerviz.hu</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Gyors és megbízható <span>Gumijavítás</span></h1>
+            <p>Ne hagyja, hogy egy defekt tönkretegye a napját. Hívjon minket bizalommal, vagy számolja ki a várható költségeket előre!</p>
+        </div>
+    </section>
+
+    <main class="container">
+        <div class="services-and-calc">
+            <!-- Árlista -->
+            <div class="card">
+                <h2>Szolgáltatásaink</h2>
+                <div class="price-list-item">
+                    <span>Gumicsere (darabár)</span>
+                    <span class="price">8 000 Ft</span>
+                </div>
+                <div class="price-list-item">
+                    <span>Defektjavítás (alkalom/gumi)</span>
+                    <span class="price">20 000 Ft</span>
+                </div>
+            </div>
+
+            <!-- Kalkulátor -->
+            <div class="card">
+                <h2>Árkalkulátor</h2>
+                <div class="calc-group">
+                    <label for="gumicsere">Gumicsere darabszám (8 000 Ft/db):</label>
+                    <input type="number" id="gumicsere" min="0" value="0" oninput="calculateTotal()">
+                </div>
+                <div class="calc-group">
+                    <label for="defekt">Defektjavítás darabszám (20 000 Ft/db):</label>
+                    <input type="number" id="defekt" min="0" value="0" oninput="calculateTotal()">
+                </div>
+
+                <div class="total-box">
+                    <span>Várható fizetendő összeg:</span>
+                    <strong id="total-price">0 Ft</strong>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Gumiszerviz. Minden jog fenntartva.</p>
+    </footer>
+
+    <script>
+        function calculateTotal() {
+            const gumicserePrice = 8000;
+            const defektPrice = 20000;
+
+            const gumicsereQty = parseInt(document.getElementById('gumicsere').value) || 0;
+            const defektQty = parseInt(document.getElementById('defekt').value) || 0;
+
+            const total = (gumicsereQty * gumicserePrice) + (defektQty * defektPrice);
+            
+            // Ezres csoportosítás a szebb megjelenésért
+            document.getElementById('total-price').innerText = total.toLocaleString('hu-HU') + ' Ft';
+        }
+    </script>
+</body>
+</html>

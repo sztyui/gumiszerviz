@@ -206,7 +206,55 @@
             border-top: 1px solid #222;
             margin-top: 40px;
         }
+		.map-container {
+			height: 300px;
+			background-color: #333;
+			border-radius: 8px;
+			margin-bottom: 20px;
+			overflow: hidden;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			color: var(--text-gray);
+		}
+		.map-container.loaded {
+			background-color: transparent; /* Once loaded, hide placeholder background */
+		}
+		.location-btn {
+			background-color: var(--primary-green);
+			color: var(--bg-dark);
+			padding: 12px 20px;
+			border: none;
+			border-radius: 6px;
+			font-size: 16px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			width: 100%; /* Full width button */
+			margin-top: 10px; /* Space from above elements */
+			font-weight: bold;
+		}
+		.location-btn:hover {
+			background-color: #27ae60;
+		}
+		.location-btn:disabled {
+			background-color: #555;
+			cursor: not-allowed;
+		}
+		#distance-display, #towing-cost-display {
+			font-size: 16px;
+			color: var(--text-light);
+			margin-top: 15px;
+			text-align: center;
+			padding: 10px;
+			background-color: #1a1a1a;
+			border-radius: 6px;
+			border: 1px solid #333;
+		}
+		#distance-display strong, #towing-cost-display strong {
+			color: var(--primary-green);
+		}
     </style>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=geometry&callback=initMap"></script>
 </head>
 <body>
 
@@ -258,6 +306,13 @@
                     <span>Várható fizetendő összeg:</span>
                     <strong id="total-price">0 Ft</strong>
                 </div>
+                <div class="calc-group">
+                    <label>Vontatás (85 Ft/km):</label>
+                    <button class="location-btn" onclick="getTowingCost()" id="get-location-btn">Saját helyzet megosztása és távolság számítása</button>
+                    <div id="distance-display" style="display: none;">Távolság: <strong>0 km</strong></div>
+                    <div id="towing-cost-display" style="display: none;">Vontatási költség: <strong>0 Ft</strong></div>
+                </div>
+                <div id="map" class="map-container">Térkép betöltése...</div>
             </div>
         </div>
     </main>
